@@ -14,10 +14,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Security;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
-
-use Symfony\Component\Security\Core\Authorization\AccessDecisionManagerInterface;
 use function in_array;
 
 /**
@@ -33,7 +30,6 @@ use function in_array;
 class ApiResultsController extends AbstractController
 {
     public const RUTA_API = '/api/v1/results';
-
     private const HEADER_CACHE_CONTROL = 'Cache-Control';
     private const HEADER_ETAG = 'ETag';
     private const HEADER_ALLOW = 'Allow';
