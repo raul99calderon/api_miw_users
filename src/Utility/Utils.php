@@ -2,6 +2,7 @@
 
 namespace App\Utility;
 
+use App\Entity\Message;
 use Hateoas\HateoasBuilder;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -72,5 +73,26 @@ trait Utils
             : 'json';
 
         return $request->get('_format') ?? $miFormato;
+    }
+
+    /**
+     * Error Message Response
+     * @param int $status
+     * @param string|null $customMessage
+     * @param string $format
+     *
+     * @return Response
+     */
+    public static function errorMessage(int $status, ?string $customMessage, string $format): Response
+    {
+        $customMessage = new Message(
+            $status,
+            $customMessage ?? strtoupper(Response::$statusTexts[$status])
+        );
+        return Utils::apiResponse(
+            $customMessage->getCode(),
+            $customMessage,
+            $format
+        );
     }
 }

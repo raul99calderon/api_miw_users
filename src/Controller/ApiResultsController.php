@@ -94,7 +94,7 @@ class ApiResultsController extends AbstractController
         // No hay resultados?
         // @codeCoverageIgnoreStart
         if (empty($results)) {
-            return $this->errorMessage(Response::HTTP_NOT_FOUND, null, $format);    // 404
+            return Utils::errorMessage(Response::HTTP_NOT_FOUND, null, $format);    // 404
         }
         // @codeCoverageIgnoreEnd
 
@@ -154,7 +154,7 @@ class ApiResultsController extends AbstractController
         $email = $this->getUser()->getUserIdentifier();
 
         if($result == null || ($result->getUserIdentifier() != $email && !$this->isGranted(self::ROLE_ADMIN))) {
-            return $this->errorMessage(Response::HTTP_NOT_FOUND, null, $format);    // 404
+            return Utils::errorMessage(Response::HTTP_NOT_FOUND, null, $format);    // 404
         }
 
         // Caching with ETag
@@ -247,7 +247,7 @@ class ApiResultsController extends AbstractController
         $email = $this->getUser()->getUserIdentifier();
 
         if($result == null || ($result->getUserIdentifier() != $email && !$this->isGranted(self::ROLE_ADMIN))) {
-            return $this->errorMessage(Response::HTTP_NOT_FOUND, null, $format);    // 404
+            return Utils::errorMessage(Response::HTTP_NOT_FOUND, null, $format);    // 404
         }
 
         $this->entityManager->remove($result);
@@ -287,7 +287,7 @@ class ApiResultsController extends AbstractController
 
         if (!isset($postData[Result::RESULT_ATTR], $postData[Result::DATE_ATTR])) {
             // 422 - Unprocessable Entity -> Faltan datos
-            return $this->errorMessage(Response::HTTP_UNPROCESSABLE_ENTITY, null, $format);
+            return Utils::errorMessage(Response::HTTP_UNPROCESSABLE_ENTITY, null, $format);
         }
 
         $email = $this->getUser()->getUserIdentifier();
@@ -353,10 +353,9 @@ class ApiResultsController extends AbstractController
             ->find($resultId);
 
         // Optimistic Locking (strong validation)
-
         $etag = md5((string) json_encode($result));
         if ($request->headers->has('If-Match') && $etag != $request->headers->get('If-Match')) {
-            return $this->errorMessage(
+            return Utils::errorMessage(
                 Response::HTTP_PRECONDITION_FAILED,
                 'PRECONDITION FAILED: one or more conditions given evaluated to false: (' . $etag .')',
                 $format
@@ -367,21 +366,21 @@ class ApiResultsController extends AbstractController
         $email = $this->getUser()->getUserIdentifier();
 
         if($result == null || ($result->getUserIdentifier() != $email && !$this->isGranted(self::ROLE_ADMIN))) {
-            return $this->errorMessage(Response::HTTP_NOT_FOUND, null, $format);    // 404
+            return Utils::errorMessage(Response::HTTP_NOT_FOUND, null, $format);    // 404
         }
 
         $body = (string) $request->getContent();
-        $postData = json_decode($body, true);
+        $putData = json_decode($body, true);
 
         $numberColumnsToUpdate = 0;
-        if (isset($postData[Result::RESULT_ATTR])) {
+        if (isset($putData[Result::RESULT_ATTR])) {
             $numberColumnsToUpdate++;
-            $result->setResult($postData[Result::RESULT_ATTR]);
+            $result->setResult($putData[Result::RESULT_ATTR]);
         }
 
-        if(isset($postData[Result::DATE_ATTR])) {
+        if(isset($putData[Result::DATE_ATTR])) {
             $numberColumnsToUpdate++;
-            $result->setDate(new DateTime($postData[Result::DATE_ATTR]));
+            $result->setDate(new DateTime($putData[Result::DATE_ATTR]));
         }
 
         if($numberColumnsToUpdate > 0) {
@@ -393,26 +392,86 @@ class ApiResultsController extends AbstractController
             );
         }
         // 422 - Unprocessable Entity -> Faltan datos
-        return $this->errorMessage(Response::HTTP_UNPROCESSABLE_ENTITY, null, $format);
+        return Utils::errorMessage(Response::HTTP_UNPROCESSABLE_ENTITY, null, $format);
     }
 
     /**
-     * Error Message Response
-     * @param int $status
-     * @param string|null $customMessage
-     * @param string $format
+     * PATCH action
+     * Summary: Update the User of a Result resource.
+     * Notes: Updates the user of a result identified by &#x60;resultId&#x60;.
      *
-     * @return Response
+     * @param Request $request request
+     * @param int $resultId Result id
+     * @return  Response
+     * @Route(
+     *     path="/{resultId}.{_format}",
+     *     defaults={ "_format": null },
+     *     requirements={
+     *          "resultId": "\d+",
+     *         "_format": "json|xml"
+     *     },
+     *     methods={ Request::METHOD_PATCH },
+     *     name="patch"
+     * )
+     *
+     * @Security(
+     *     expression="is_granted('IS_AUTHENTICATED_FULLY')",
+     *     statusCode=401,
+     *     message="`Unauthorized`: Invalid credentials."
+     * )
+     * @throws Exception
      */
-    private function errorMessage(int $status, ?string $customMessage, string $format): Response
-    {
-        $customMessage = new Message(
-            $status,
-            $customMessage ?? strtoupper(Response::$statusTexts[$status])
-        );
+    public function patchAction(Request $request, int $resultId) {
+        $format = Utils::getFormat($request);
+        // Puede crear un usuario sólo si tiene ROLE_ADMIN
+        if (!$this->isGranted(self::ROLE_ADMIN)) {
+            return Utils::errorMessage( // 403
+                Response::HTTP_FORBIDDEN,
+                '`Forbidden`: you don\'t have permission to access',
+                $format
+            );
+        }
+
+        /** @var Result $result */
+        $result = $this->entityManager
+            ->getRepository(Result::class)
+            ->find($resultId);
+
+        if($result == null) {
+            return Utils::errorMessage(Response::HTTP_NOT_FOUND, null, $format);    // 404
+        }
+
+        $etag = md5((string) json_encode($result));
+        if ($request->headers->has('If-Match') && $etag != $request->headers->get('If-Match')) {
+            return Utils::errorMessage(
+                Response::HTTP_PRECONDITION_FAILED,
+                'PRECONDITION FAILED: one or more conditions given evaluated to false: (' . $etag .')',
+                $format
+            ); // 412
+        }
+
+        $body = (string) $request->getContent();
+        $patchData = json_decode($body, true);
+
+        if(!isset($patchData[User::EMAIL_ATTR])) {
+            // 422 - Unprocessable Entity -> Faltan datos
+            return Utils::errorMessage(Response::HTTP_UNPROCESSABLE_ENTITY, null, $format);
+        }
+
+        $user = $this->entityManager
+            ->getRepository(User::class)
+            ->findOneBy([User::EMAIL_ATTR => $patchData[User::EMAIL_ATTR]]);
+
+        if($user == null) {
+            return Utils::errorMessage(Response::HTTP_NOT_FOUND, null, $format);    // 404
+        }
+
+        $result->setUser($user);
+
+        $this->entityManager->flush();
         return Utils::apiResponse(
-            $customMessage->getCode(),
-            $customMessage,
+            209,                        // 209 - Content Returned
+            [ Result::RESULT_ATTR => $result ],
             $format
         );
     }

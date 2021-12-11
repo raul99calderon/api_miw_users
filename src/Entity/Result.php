@@ -144,6 +144,14 @@ class Result implements JsonSerializable
     }
 
     /**
+     * @param User|null $user
+     */
+    public function setUser(?User $user): void
+    {
+        $this->user = $user;
+    }
+
+    /**
      * @inheritDoc
      */
     public function jsonSerialize()

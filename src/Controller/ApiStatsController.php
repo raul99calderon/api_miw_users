@@ -6,18 +6,12 @@ use App\Entity\Message;
 use App\Entity\Result;
 use App\Entity\User;
 use App\Utility\Utils;
-use DateTime;
 use Doctrine\ORM\EntityManagerInterface;
-use Exception;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Security;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
-
-
-use Symfony\Component\Security\Core\Authorization\AccessDecisionManagerInterface;
 use function in_array;
 
 /**
@@ -91,7 +85,7 @@ class ApiStatsController extends AbstractController
             ->findBy(['user' => $user]);
 
         if (empty($results)) {
-            return $this->errorMessage(Response::HTTP_NOT_FOUND, null, $format);    // 404
+            return Utils::errorMessage(Response::HTTP_NOT_FOUND, null, $format);    // 404
         }
 
         // Caching with ETag
@@ -133,27 +127,6 @@ class ApiStatsController extends AbstractController
                 self::HEADER_CACHE_CONTROL => 'must-revalidate',
                 self::HEADER_ETAG => $etag,
             ]
-        );
-    }
-
-    /**
-     * Error Message Response
-     * @param int $status
-     * @param string|null $customMessage
-     * @param string $format
-     *
-     * @return Response
-     */
-    private function errorMessage(int $status, ?string $customMessage, string $format): Response
-    {
-        $customMessage = new Message(
-            $status,
-            $customMessage ?? strtoupper(Response::$statusTexts[$status])
-        );
-        return Utils::apiResponse(
-            $customMessage->getCode(),
-            $customMessage,
-            $format
         );
     }
 }

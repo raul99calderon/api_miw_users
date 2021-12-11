@@ -79,7 +79,7 @@ class ApiUsersController extends AbstractController
         // No hay usuarios?
         // @codeCoverageIgnoreStart
         if (empty($users)) {
-            return $this->errorMessage(Response::HTTP_NOT_FOUND, null, $format);    // 404
+            return Utils::errorMessage(Response::HTTP_NOT_FOUND, null, $format);    // 404
         }
         // @codeCoverageIgnoreEnd
 
@@ -136,7 +136,7 @@ class ApiUsersController extends AbstractController
         $format = Utils::getFormat($request);
 
         if (null == $user) {
-            return $this->errorMessage(Response::HTTP_NOT_FOUND, null, $format);    // 404
+            return Utils::errorMessage(Response::HTTP_NOT_FOUND, null, $format);    // 404
         }
 
         // Caching with ETag
@@ -222,7 +222,7 @@ class ApiUsersController extends AbstractController
         $format = Utils::getFormat($request);
         // Puede borrar un usuario sólo si tiene ROLE_ADMIN
         if (!$this->isGranted(self::ROLE_ADMIN)) {
-            return $this->errorMessage( // 403
+            return Utils::errorMessage( // 403
                 Response::HTTP_FORBIDDEN,
                 '`Forbidden`: you don\'t have permission to access',
                 $format
@@ -235,7 +235,7 @@ class ApiUsersController extends AbstractController
             ->find($userId);
 
         if (null == $user) {   // 404 - Not Found
-            return $this->errorMessage(Response::HTTP_NOT_FOUND, null, $format);
+            return Utils::errorMessage(Response::HTTP_NOT_FOUND, null, $format);
         }
 
         $this->entityManager->remove($user);
@@ -271,7 +271,7 @@ class ApiUsersController extends AbstractController
         $format = Utils::getFormat($request);
         // Puede crear un usuario sólo si tiene ROLE_ADMIN
         if (!$this->isGranted(self::ROLE_ADMIN)) {
-            return $this->errorMessage( // 403
+            return Utils::errorMessage( // 403
                 Response::HTTP_FORBIDDEN,
                 '`Forbidden`: you don\'t have permission to access',
                 $format
@@ -282,7 +282,7 @@ class ApiUsersController extends AbstractController
 
         if (!isset($postData[User::EMAIL_ATTR], $postData[User::PASSWD_ATTR])) {
             // 422 - Unprocessable Entity -> Faltan datos
-            return $this->errorMessage(Response::HTTP_UNPROCESSABLE_ENTITY, null, $format);
+            return Utils::errorMessage(Response::HTTP_UNPROCESSABLE_ENTITY, null, $format);
         }
 
         // hay datos -> procesarlos
@@ -291,7 +291,7 @@ class ApiUsersController extends AbstractController
                 ->findOneBy([ User::EMAIL_ATTR => $postData[User::EMAIL_ATTR] ]);
 
         if (null !== $user_exist) {    // 400 - Bad Request
-            return $this->errorMessage(Response::HTTP_BAD_REQUEST, null, $format);
+            return Utils::errorMessage(Response::HTTP_BAD_REQUEST, null, $format);
         }
 
         // 201 - Created
@@ -357,7 +357,7 @@ class ApiUsersController extends AbstractController
             ($this->getUser()->getId() !== $userId)
             && !$this->isGranted(self::ROLE_ADMIN)
         ) {
-            return $this->errorMessage( // 403
+            return Utils::errorMessage( // 403
                 Response::HTTP_FORBIDDEN,
                 '`Forbidden`: you don\'t have permission to access',
                 $format
@@ -372,13 +372,13 @@ class ApiUsersController extends AbstractController
             ->find($userId);
 
         if (null == $user) {    // 404 - Not Found
-            return $this->errorMessage(Response::HTTP_NOT_FOUND, null, $format);
+            return Utils::errorMessage(Response::HTTP_NOT_FOUND, null, $format);
         }
 
         // Optimistic Locking (strong validation)
         $etag = md5((string) json_encode($user));
         if ($request->headers->has('If-Match') && $etag != $request->headers->get('If-Match')) {
-            return $this->errorMessage(
+            return Utils::errorMessage(
                 Response::HTTP_PRECONDITION_FAILED,
                 'PRECONDITION FAILED: one or more conditions given evaluated to false',
                 $format
@@ -391,7 +391,7 @@ class ApiUsersController extends AbstractController
                 ->findOneBy([ User::EMAIL_ATTR => $postData[User::EMAIL_ATTR] ]);
 
             if (null !== $user_exist) {    // 400 - Bad Request
-                return $this->errorMessage(Response::HTTP_BAD_REQUEST, null, $format);
+                return Utils::errorMessage(Response::HTTP_BAD_REQUEST, null, $format);
             }
             $user->setEmail($postData[User::EMAIL_ATTR]);
         }
@@ -412,7 +412,7 @@ class ApiUsersController extends AbstractController
                 in_array(self::ROLE_ADMIN, $postData[User::ROLES_ATTR], true)
                 && !$this->isGranted(self::ROLE_ADMIN)
             ) {
-                return $this->errorMessage( // 403
+                return Utils::errorMessage( // 403
                     Response::HTTP_FORBIDDEN,
                     '`Forbidden`: you don\'t have permission to access',
                     $format
@@ -426,27 +426,6 @@ class ApiUsersController extends AbstractController
         return Utils::apiResponse(
             209,                        // 209 - Content Returned
             [ User::USER_ATTR => $user ],
-            $format
-        );
-    }
-
-    /**
-     * Error Message Response
-     * @param int $status
-     * @param string|null $customMessage
-     * @param string $format
-     *
-     * @return Response
-     */
-    private function errorMessage(int $status, ?string $customMessage, string $format): Response
-    {
-        $customMessage = new Message(
-            $status,
-            $customMessage ?? strtoupper(Response::$statusTexts[$status])
-        );
-        return Utils::apiResponse(
-            $customMessage->getCode(),
-            $customMessage,
             $format
         );
     }
