@@ -7,7 +7,6 @@ use Doctrine\ORM\Mapping as ORM;
 use Hateoas\Configuration\Annotation as Hateoas;
 use JMS\Serializer\Annotation as Serializer;
 use JsonSerializable;
-use Symfony\Component\Security\Core\User\UserInterface;
 
 /**
  * @ORM\Entity
@@ -15,17 +14,17 @@ use Symfony\Component\Security\Core\User\UserInterface;
  * @Serializer\XmlNamespace(uri="http://www.w3.org/2005/Atom", prefix="atom")
  * @Serializer\AccessorOrder(
  *     "custom",
- *     custom={ "id", "email", "roles", "_links" }
+ *     custom={ "id", "result", "user", "date" }
  *     )
  *
  * @Hateoas\Relation(
  *     name="parent",
- *     href="expr(constant('\\App\\Controller\\ApiUsersController::RUTA_API'))"
+ *     href="expr(constant('\\App\\Controller\\ApiResultsController::RUTA_API'))"
  * )
  *
  * @Hateoas\Relation(
  *     name="self",
- *     href="expr(constant('\\App\\Controller\\ApiUsersController::RUTA_API') ~ '/' ~ object.getId())"
+ *     href="expr(constant('\\App\\Controller\\ApiResultsController::RUTA_API') ~ '/' ~ object.getId())"
  * )
  */
 class Result implements JsonSerializable
@@ -62,7 +61,6 @@ class Result implements JsonSerializable
      * })
      *
      * @Serializer\SerializedName(Result::USER_ATTR)
-     * @Serializer\XmlElement(cdata=false)
      *
      * @var User $user
      */
@@ -141,33 +139,15 @@ class Result implements JsonSerializable
         return $this;
     }
 
-    /**
-     * The public representation of the user (e.g. a username, an email address, etc.)
-     *
-     * @see UserInterface
-     */
-    public function getUserIdentifier(): string
-    {
-        return $this->user->getEmail();
+    public function getUserIdentifier() {
+        return $this->user->getUserIdentifier();
     }
 
     /**
      * @inheritDoc
-     *
-     * Specify data which should be serialized to JSON
-     *
-     * @link   http://php.net/manual/en/jsonserializable.jsonserialize.php
-     * @return mixed data which can be serialized by <b>json_encode</b>,
-     * which is a value of any type other than a resource.
-     * @since  5.4.0
      */
-    public function jsonSerialize(): array
+    public function jsonSerialize()
     {
-        return [
-            'id' => $this->getId(),
-            self::RESULT_ATTR => $this->getResult(),
-            self::USER_ATTR => $this->getUserIdentifier(),
-            self::DATE_ATTR => $this->getFormattedDate()
-        ];
+        return array();
     }
 }
