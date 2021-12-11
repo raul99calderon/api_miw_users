@@ -6,7 +6,9 @@ use App\Entity\Message;
 use App\Entity\Result;
 use App\Entity\User;
 use App\Utility\Utils;
+use DateTime;
 use Doctrine\ORM\EntityManagerInterface;
+use Exception;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
@@ -256,6 +258,146 @@ class ApiResultsController extends AbstractController
         $this->entityManager->flush();
 
         return Utils::apiResponse(Response::HTTP_NO_CONTENT);
+    }
+
+    /**
+     * POST action
+     * Summary: Creates a User resource.
+     *
+     * @param Request $request request
+     * @return Response
+     * @Route(
+     *     path=".{_format}",
+     *     defaults={ "_format": null },
+     *     requirements={
+     *         "_format": "json|xml"
+     *     },
+     *     methods={ Request::METHOD_POST },
+     *     name="post"
+     * )
+     *
+     * @Security(
+     *     expression="is_granted('IS_AUTHENTICATED_FULLY')",
+     *     statusCode=401,
+     *     message="`Unauthorized`: Invalid credentials."
+     * )
+     * @throws Exception
+     */
+    public function postAction(Request $request): Response
+    {
+        $format = Utils::getFormat($request);
+        $body = $request->getContent();
+        $postData = json_decode((string) $body, true);
+
+        if (!isset($postData[Result::RESULT_ATTR], $postData[Result::DATE_ATTR])) {
+            // 422 - Unprocessable Entity -> Faltan datos
+            return $this->errorMessage(Response::HTTP_UNPROCESSABLE_ENTITY, null, $format);
+        }
+
+        $email = $this->getUser()->getUserIdentifier();
+
+        /** @var User $user */
+        $user = $this->entityManager
+            ->getRepository(User::class)
+            ->findOneBy(['email' => $email]);
+
+        $result = new Result(
+            $postData[Result::RESULT_ATTR],
+            $user,
+            new DateTime($postData[Result::DATE_ATTR])
+        );
+
+        $this->entityManager->persist($result);
+        $this->entityManager->flush();
+
+        return Utils::apiResponse(
+            Response::HTTP_CREATED,
+            [ Result::RESULT_ATTR => $result ],
+            $format,
+            [
+                'Location' => $request->getScheme() . '://' . $request->getHttpHost() .
+                    self::RUTA_API . '/' . $result->getId(),
+            ]
+        );
+    }
+
+    /**
+     * PUT action
+     * Summary: Updates the Result resource.
+     * Notes: Updates the result identified by &#x60;resultId&#x60;.
+     *
+     * @param Request $request request
+     * @param int $resultId Result id
+     * @return  Response
+     * @Route(
+     *     path="/{resultId}.{_format}",
+     *     defaults={ "_format": null },
+     *     requirements={
+     *          "resultId": "\d+",
+     *         "_format": "json|xml"
+     *     },
+     *     methods={ Request::METHOD_PUT },
+     *     name="put"
+     * )
+     *
+     * @Security(
+     *     expression="is_granted('IS_AUTHENTICATED_FULLY')",
+     *     statusCode=401,
+     *     message="`Unauthorized`: Invalid credentials."
+     * )
+     * @throws Exception
+     */
+    public function putAction(Request $request, int $resultId): Response
+    {
+        $format = Utils::getFormat($request);
+
+        /** @var Result $result */
+        $result = $this->entityManager
+            ->getRepository(Result::class)
+            ->find($resultId);
+
+        // Optimistic Locking (strong validation)
+
+        $etag = md5((string) json_encode($result));
+        if ($request->headers->has('If-Match') && $etag != $request->headers->get('If-Match')) {
+            return $this->errorMessage(
+                Response::HTTP_PRECONDITION_FAILED,
+                'PRECONDITION FAILED: one or more conditions given evaluated to false: (' . $etag .')',
+                $format
+            ); // 412
+        }
+
+
+        $email = $this->getUser()->getUserIdentifier();
+
+        if($result == null || ($result->getUserIdentifier() != $email && !$this->isGranted(self::ROLE_ADMIN))) {
+            return $this->errorMessage(Response::HTTP_NOT_FOUND, null, $format);    // 404
+        }
+
+        $body = (string) $request->getContent();
+        $postData = json_decode($body, true);
+
+        $numberColumnsToUpdate = 0;
+        if (isset($postData[Result::RESULT_ATTR])) {
+            $numberColumnsToUpdate++;
+            $result->setResult($postData[Result::RESULT_ATTR]);
+        }
+
+        if(isset($postData[Result::DATE_ATTR])) {
+            $numberColumnsToUpdate++;
+            $result->setDate(new DateTime($postData[Result::DATE_ATTR]));
+        }
+
+        if($numberColumnsToUpdate > 0) {
+            $this->entityManager->flush();
+            return Utils::apiResponse(
+                209,                        // 209 - Content Returned
+                [ Result::RESULT_ATTR => $result ],
+                $format
+            );
+        }
+        // 422 - Unprocessable Entity -> Faltan datos
+        return $this->errorMessage(Response::HTTP_UNPROCESSABLE_ENTITY, null, $format);
     }
 
     /**
