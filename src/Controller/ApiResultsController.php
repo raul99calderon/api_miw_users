@@ -153,8 +153,11 @@ class ApiResultsController extends AbstractController
 
         $email = $this->getUser()->getUserIdentifier();
 
-        if($result == null || ($result->getUserIdentifier() != $email && !$this->isGranted(self::ROLE_ADMIN))) {
-            return Utils::errorMessage(Response::HTTP_NOT_FOUND, null, $format);    // 404
+        if($result == null) {
+            return Utils::errorMessage(Response::HTTP_NOT_FOUND, null, $format);
+        }
+        elseif(($result->getUserIdentifier() != $email && !$this->isGranted(self::ROLE_ADMIN))) {
+            return Utils::errorMessage(Response::HTTP_FORBIDDEN, null, $format);
         }
 
         // Caching with ETag
@@ -196,7 +199,7 @@ class ApiResultsController extends AbstractController
     public function optionsAction(int $resultId): Response
     {
         $methods = $resultId
-            ? [ Request::METHOD_GET, Request::METHOD_PUT, Request::METHOD_DELETE ]
+            ? [ Request::METHOD_GET, Request::METHOD_PUT, Request::METHOD_DELETE, Request::METHOD_PATCH ]
             : [ Request::METHOD_GET, Request::METHOD_POST ];
         $methods[] = Request::METHOD_OPTIONS;
 
@@ -246,8 +249,11 @@ class ApiResultsController extends AbstractController
 
         $email = $this->getUser()->getUserIdentifier();
 
-        if($result == null || ($result->getUserIdentifier() != $email && !$this->isGranted(self::ROLE_ADMIN))) {
-            return Utils::errorMessage(Response::HTTP_NOT_FOUND, null, $format);    // 404
+        if($result == null) {
+            return Utils::errorMessage(Response::HTTP_NOT_FOUND, null, $format);
+        }
+        elseif(($result->getUserIdentifier() != $email && !$this->isGranted(self::ROLE_ADMIN))) {
+            return Utils::errorMessage(Response::HTTP_FORBIDDEN, null, $format);
         }
 
         $this->entityManager->remove($result);
@@ -362,11 +368,13 @@ class ApiResultsController extends AbstractController
             ); // 412
         }
 
-
         $email = $this->getUser()->getUserIdentifier();
 
-        if($result == null || ($result->getUserIdentifier() != $email && !$this->isGranted(self::ROLE_ADMIN))) {
-            return Utils::errorMessage(Response::HTTP_NOT_FOUND, null, $format);    // 404
+        if($result == null) {
+            return Utils::errorMessage(Response::HTTP_NOT_FOUND, null, $format);
+        }
+        elseif(($result->getUserIdentifier() != $email && !$this->isGranted(self::ROLE_ADMIN))) {
+            return Utils::errorMessage(Response::HTTP_FORBIDDEN, null, $format);
         }
 
         $body = (string) $request->getContent();

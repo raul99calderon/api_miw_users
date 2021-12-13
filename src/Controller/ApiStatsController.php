@@ -46,8 +46,7 @@ class ApiStatsController extends AbstractController
 
     /**
      * GET Action
-     * Summary: Retrieves a Result resource based on a single ID.
-     * Notes: Returns the result identified by &#x60;resultId&#x60;.
+     * Summary: Retrieves stats
      *
      * @param Request $request
      * @return Response
@@ -78,6 +77,10 @@ class ApiStatsController extends AbstractController
         $user = $this->entityManager
             ->getRepository(User::class)
             ->findOneBy(['email' => $email]);
+
+        if ($user == null) {
+            return Utils::errorMessage(Response::HTTP_NOT_FOUND, null, $format);    // 404
+        }
 
         /** @var Result[] $results */
         $results = $this->entityManager

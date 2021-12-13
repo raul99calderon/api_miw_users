@@ -28,6 +28,10 @@ tags:
     description: 'User login'
   - name: '👥 Users'
     description: 'User management'
+  - name: '🎮 Results'
+    description: 'Result management'
+  - name: '🏅 Stats'
+    description: 'User games stats'
 paths:
   /login_check:
     post:
@@ -213,6 +217,186 @@ paths:
           headers:
             Allow:
               $ref: '#/components/headers/Allow'
+  /results:
+    get:
+      tags: [ '🎮 Results' ]
+      summary: Retrieves the collection of Result resources.
+      description: 'Returns all results from the user who is calling.'
+      operationId: api_results_cget
+      security:
+        - MiWApiSecurity: []
+      responses:
+        '200':
+          description: 'Array of results'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results: { description: 'Results array', type: array, items: { $ref: '#/components/schemas/Result' } }
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+        '401':
+          $ref: '#/components/responses/401_Unauthorized_Response'
+        '404':
+          $ref: '#/components/responses/404_Resource_Not_Found_Response'
+    post:
+      tags: [ '🎮 Results' ]
+      summary: Creates a Result resource.
+      description: 'Creates a new result associed to the useer who is requesting'
+      operationId: api_results_post
+      security:
+        - MiWApiSecurity: []
+      requestBody:
+        $ref: '#/components/requestBodies/ResultRequestBody'
+      responses:
+        '201':
+          description: '`Created`: result created'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Result'
+          headers:
+            Location:
+              $ref: '#/components/headers/Location'
+        '401':
+          $ref: '#/components/responses/401_Unauthorized_Response'
+    options:
+      tags: [ '🎮 Results' ]
+      summary: Provides the list of HTTP supported methods.
+      description: 'Return a `Allow` header with a comma separated list of HTTP supported methods.'
+      operationId: api_results_coptions
+      responses:
+        '204':
+          description: '`Allow` header &lt;Response body is empty&gt;'
+          headers:
+            Allow:
+              $ref: '#/components/headers/Allow'
+  '/results/{resultId}':
+    parameters:
+      - $ref: '#/components/parameters/resultId'
+    get:
+      tags: [ '🎮 Results' ]
+      summary: Retrieves a Result resource based on a single ID.
+      description: 'Returns the result identified by `resultId`.'
+      operationId: api_results_get
+      security:
+        - MiWApiSecurity: [ ]
+      responses:
+        '200':
+          description: Result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Result'
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+        '401':
+          $ref: '#/components/responses/401_Unauthorized_Response'
+        '403':
+          $ref: '#/components/responses/403_Forbidden_Response'
+        '404':
+          $ref: '#/components/responses/404_Resource_Not_Found_Response'
+    put:
+      tags: [ '🎮 Results' ]
+      summary: Updates the Result resource.
+      description: 'Updates the result identified by `resultId`.'
+      operationId: api_results_put
+      parameters:
+        - $ref: '#/components/parameters/ifMatchParam'
+      security:
+        - MiWApiSecurity: [ ]
+      requestBody:
+        $ref: '#/components/requestBodies/ResultRequestBody'
+      responses:
+        '209':
+          description: '`Content Returned`: result previously existed and is now updated'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Result'
+        '401':
+          $ref: '#/components/responses/401_Unauthorized_Response'
+        '403':
+          $ref: '#/components/responses/403_Forbidden_Response'
+        '404':
+          $ref: '#/components/responses/404_Resource_Not_Found_Response'
+        '412':
+          $ref: '#/components/responses/412_Precondition_Failed_Response'
+    patch:
+      tags: [ '🎮 Results' ]
+      summary: Updates the user of a Result resource.
+      description: 'Updates the user of a result identified by `resultId`. Who calls this endpoint needs to be an admin'
+      operationId: api_results_patch
+      parameters:
+        - $ref: '#/components/parameters/ifMatchParam'
+      security:
+        - MiWApiSecurity: [ ]
+      requestBody:
+        $ref: '#/components/requestBodies/EmailRequestBody'
+      responses:
+        '209':
+          description: '`Content Returned`: result previously existed and is now updated'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Result'
+        '401':
+          $ref: '#/components/responses/401_Unauthorized_Response'
+        '403':
+          $ref: '#/components/responses/403_Forbidden_Response'
+        '404':
+          $ref: '#/components/responses/404_Resource_Not_Found_Response'
+        '412':
+          $ref: '#/components/responses/412_Precondition_Failed_Response'
+    delete:
+      tags: [ '🎮 Results' ]
+      summary: Removes the Result resource.
+      description: 'Deletes the result identified by `resultId`.'
+      operationId: api_results_delete
+      security:
+        - MiWApiSecurity: [ ]
+      responses:
+        '204':
+          description: 'Result deleted &lt;Response body is empty&gt;'
+        '401':
+          $ref: '#/components/responses/401_Unauthorized_Response'
+        '403':
+          $ref: '#/components/responses/403_Forbidden_Response'
+        '404':
+          $ref: '#/components/responses/404_Resource_Not_Found_Response'
+    options:
+      tags: [ '🎮 Results' ]
+      summary: Provides the list of HTTP supported methods.
+      description: 'Return a `Allow` header with a comma separated list of HTTP supported methods.'
+      operationId: api_results_options_id
+      responses:
+        '204':
+          description: '`Allow` header &lt;Response body is empty&gt;'
+          headers:
+            Allow:
+              $ref: '#/components/headers/Allow'
+  /stats:
+    get:
+      tags: [ '🏅 Stats' ]
+      summary: Restrieves stats
+      description: 'Retrieves some stats from the games that the identified user has played'
+      operationId: api_stats_get
+      security:
+        - MiWApiSecurity: []
+      responses:
+        '200':
+          description: 'Stats of the identified user'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Stats'
+        '401':
+          $ref: '#/components/responses/401_Unauthorized_Response'
+        '404':
+          $ref: '#/components/responses/404_Resource_Not_Found_Response'
 
 components:
   headers:
@@ -254,14 +438,60 @@ components:
               properties: {"href": { "type": "string", "format": "url" }}
       example:
         user:
-          id: 1508
-          email: 'miw.etsisi@upm.es'
-          roles: [ 'ROLE_USER' ]
+        id: 1508
+        email: 'miw.etsisi@upm.es'
+        roles: [ 'ROLE_USER' ]
+        _links:
+          parent:
+            href: /api/v1/users
+          self:
+            href: /api/v1/users/1508
+    Result:
+      type: object
+      properties:
+        id:
+          description: 'Result Id'
+          type: integer
+          format: int64
+        result:
+          description: 'Result punctuation'
+          type: integer
+          format: int64
+        user:
+          $ref: '#/components/schemas/User'
+        date:
+          description: 'Date in which result was done'
+          type: string
+          format: date-time
+        _links:
+          description: link relations
+          type: object
+          properties:
+            parent:
+              type: object
+              properties: {"href": { "type": "string", "format": "url" }}
+            self:
+              type: object
+              properties: {"href": { "type": "string", "format": "url" }}
+      example:
+        result:
+          id: 3
+          result: 1300
+          date: "2021-12-02T15:48:03+00:00"
+          user:
+            id: 1508
+            email: 'miw.etsisi@upm.es'
+            roles: [ 'ROLE_USER' ]
+            _links:
+              parent:
+                href: /api/v1/users
+              self:
+                href: /api/v1/users/1508
           _links:
             parent:
-              href: /api/v1/users
+              href: /api/v1/results
             self:
-              href: /api/v1/users/1508
+              href: /api/v1/results/3
     Message:
       type: object
       description: HTTP response message
@@ -276,7 +506,39 @@ components:
       example:
         code: 200
         message: Ok
-
+    Stats:
+      type: object
+      description: Game stats
+      properties:
+        stats:
+          type: object
+          properties:
+            num_matches:
+              description: 'Total number of matches played by the user'
+              type: integer
+              format: int64
+            max_result:
+              description: 'Better score obtained by the user'
+              type: integer
+              format: int64
+            min_result:
+              description: 'Worst score obtained by the user'
+              type: integer
+              format: int64
+            total_score:
+              description: 'The sum of all user scores'
+              type: integer
+              format: int64
+            average_score:
+              description: 'The aritmetic mean of score per game'
+              type: integer
+              format: float
+      example:
+        num_matches: 4
+        max_result: 2005
+        min_result: 102
+        total_score: 6117
+        average_score: 1529.25
   responses:
     400_BadRequest_Response:
       description: "`BAD REQUEST`: e-mail already exists"
@@ -334,6 +596,18 @@ components:
               $ref: '#/components/examples/response-422'
 
   requestBodies:
+    EmailRequestBody:
+      description: 'User email'
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              email:
+                description: 'New email to assign'
+                type: string
+                format: email
     UserRequestBody:
       description: '`User` data'
       required: true
@@ -358,6 +632,22 @@ components:
               email: User_email@example.com
               password: User_password
               roles: [ 'ROLE_USER', 'ROLE_ADMIN' ]
+    ResultRequestBody:
+      description: '`Result` data'
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              result:
+                description: 'Punctuation'
+                type: number
+                format: int64
+              date:
+                description: 'Date'
+                type: string
+                format: date-time
     LoginRequestBody:
       description: Registered user **e-mail** and **password**
       required: true
@@ -392,6 +682,12 @@ components:
       name: userId
       in: path
       description: 'ID of user'
+      required: true
+      schema: { "type": "integer", pattern: '^\d+$' }
+    resultId:
+      name: resultId
+      in: path
+      description: 'ID of result'
       required: true
       schema: { "type": "integer", pattern: '^\d+$' }
     ifMatchParam:
