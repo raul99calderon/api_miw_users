@@ -358,16 +358,6 @@ class ApiResultsController extends AbstractController
             ->getRepository(Result::class)
             ->find($resultId);
 
-        // Optimistic Locking (strong validation)
-        $etag = md5((string) json_encode($result));
-        if ($request->headers->has('If-Match') && $etag != $request->headers->get('If-Match')) {
-            return Utils::errorMessage(
-                Response::HTTP_PRECONDITION_FAILED,
-                'PRECONDITION FAILED: one or more conditions given evaluated to false: (' . $etag .')',
-                $format
-            ); // 412
-        }
-
         $email = $this->getUser()->getUserIdentifier();
 
         if($result == null) {
@@ -375,6 +365,16 @@ class ApiResultsController extends AbstractController
         }
         elseif(($result->getUserIdentifier() != $email && !$this->isGranted(self::ROLE_ADMIN))) {
             return Utils::errorMessage(Response::HTTP_FORBIDDEN, null, $format);
+        }
+
+        // Optimistic Locking (strong validation)
+        $etag = md5((string) json_encode($result));
+        if (!$request->headers->has('If-Match') || $etag != $request->headers->get('If-Match')) {
+            return Utils::errorMessage(
+                Response::HTTP_PRECONDITION_FAILED,
+                'PRECONDITION FAILED: one or more conditions given evaluated to false: (' . $etag .')',
+                $format
+            ); // 412
         }
 
         $body = (string) $request->getContent();
